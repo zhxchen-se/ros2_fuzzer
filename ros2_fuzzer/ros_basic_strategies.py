@@ -13,7 +13,6 @@ STRING_MAX_SIZE = 1000
 """int: Maximal string size."""
 
 
-@st.defines_strategy
 def string(min_size=STRING_MIN_SIZE, max_size=STRING_MAX_SIZE):
     """
     Generate value for ROS builtin message type "string".
@@ -73,7 +72,6 @@ def duration(draw, secs=st.integers(), nsecs=st.integers()):
     return _Duration(secs_value, nsecs_value)
 
 
-@st.defines_strategy
 def array(elements=None, min_size=None, max_size=None, unique_by=None, unique=None):
     """
     Generate variable length array with ROS builtin message types as elements.

@@ -11,12 +11,15 @@ setup(
     description='A ROS2 fuzzing tool for ROS2 systems',
     keywords=['network', 'fuzzing', 'ros', 'ros2'],
     entry_points={
-        'console_scripts': ['ros2_fuzzer=ros2_fuzzer.ros_fuzzer:main'],
+        'console_scripts': [
+            'ros2_fuzzer=ros2_fuzzer.ros_fuzzer:main',
+            'ros2_generate_random_data=ros2_fuzzer.generate_random_data_by_service:main',
+        ],
     },
     install_requires=[
-        'hypothesis==3.82',
-        'attrs==19.1.0',
-        'numpy==1.16.3',
+        'hypothesis>=6.0.0',
+        'attrs>=22.2.0',
+        'numpy>=1.16.3',
     ],
     include_package_data=True,
     python_requires='>=3'
