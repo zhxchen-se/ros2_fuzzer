@@ -93,6 +93,16 @@ def array(elements=None, min_size=None, max_size=None, unique_by=None, unique=No
         length in the interval [min_size, max_size] (no bounds in that direction
         if these are None).
     """
-    # TODO: Assert that strategy for elements is from supported strategies.
-    # if not min_size <= max_size: raise InvalidArgument
-    return st.lists(elements=elements, min_size=min_size, max_size=max_size, unique_by=unique_by, unique=unique)
+    # Build kwargs dict, only include parameters that are not None
+    # This is required for hypothesis >= 6.0 which doesn't accept None for size parameters
+    kwargs = {'elements': elements}
+    if min_size is not None:
+        kwargs['min_size'] = min_size
+    if max_size is not None:
+        kwargs['max_size'] = max_size
+    if unique_by is not None:
+        kwargs['unique_by'] = unique_by
+    if unique is not None:
+        kwargs['unique'] = unique
+    
+    return st.lists(**kwargs)
