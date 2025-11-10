@@ -48,23 +48,37 @@ def ros_msg_to_dict(msg):
     return result
 
 
-def generate_random_service_data(srv_type, num_examples=1, seed=None):
+def generate_random_service_data(srv_type, num_examples=1, seed=None, skip_simple=False):
     """
     Generate random data conforming to a ROS2 service request format.
     
     :param srv_type: The ROS2 service type class
     :param num_examples: Number of random examples to generate
     :param seed: Random seed for reproducibility (optional)
+    :param skip_simple: If True, generate more examples and skip the simple ones (optional)
     :return: List of generated service request instances
     """
     generated_data = []
     
+    # Hypothesis generates simple examples first (like 0, empty strings)
+    # then progresses to more complex/random values
+    # If skip_simple is True, we generate extra examples and skip the initial simple ones
+    actual_examples = num_examples
+    skip_count = 0
+    
+    if skip_simple:
+        # Generate extra examples to skip the simple ones
+        # Hypothesis typically generates simple values in the first 10-20 examples
+        skip_count = max(10, num_examples)  # Skip first ~10 simple examples
+        actual_examples = num_examples + skip_count
+    
     # Configure hypothesis settings
     settings_kwargs = {
-        'max_examples': num_examples,
+        'max_examples': actual_examples,
         'verbosity': Verbosity.quiet,
         'phases': [Phase.generate],  # Only generate, don't shrink
         'print_blob': False,
+        'database': None,  # Don't use example database for more randomness
     }
     
     if seed is not None:
@@ -79,6 +93,10 @@ def generate_random_service_data(srv_type, num_examples=1, seed=None):
     
     # Run the generation
     collect_data()
+    
+    # Skip simple examples if requested
+    if skip_simple:
+        return generated_data[skip_count:]
     
     return generated_data
 
@@ -166,7 +184,7 @@ def main():
     
     parser.add_argument(
         'service_type',
-        help='ROS2 service type (e.g., "example_interfaces/AddTwoInts")'
+        help='ROS2 service type. Supports both formats: "package/Type" or "package/srv/Type" (from ros2 service list -t)'
     )
     
     parser.add_argument(
@@ -190,6 +208,12 @@ def main():
         help='Random seed for reproducible generation (optional)'
     )
     
+    parser.add_argument(
+        '--random',
+        action='store_true',
+        help='Skip simple examples (0, empty strings) and generate more random values'
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -202,7 +226,8 @@ def main():
         generated_requests = generate_random_service_data(
             srv_type,
             num_examples=args.num_examples,
-            seed=args.seed
+            seed=args.seed,
+            skip_simple=args.random
         )
         
         # Print the generated data

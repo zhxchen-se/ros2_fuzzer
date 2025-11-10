@@ -16,18 +16,31 @@ STRING_MAX_SIZE = 1000
 def string(min_size=STRING_MIN_SIZE, max_size=STRING_MAX_SIZE):
     """
     Generate value for ROS builtin message type "string".
+    
+    Generates safe printable strings that work well with YAML and JSON parsers.
+    Uses alphanumeric characters, spaces, and common punctuation.
+    Avoids control characters (\n, \t, \f, etc.) that can cause YAML parsing errors.
 
     :param min_size: int
         Minimal size to generate
     :param max_size: int
         Maximal size to generate
-    :return: :func:`hypothesis.strategies.binary()`
-        Strategy with preconfigured default values.
+    :return: :func:`hypothesis.strategies.text()`
+        Strategy generating safe printable strings.
     """
     if not STRING_MIN_SIZE <= min_size <= max_size <= STRING_MAX_SIZE:
         raise InvalidArgument
-    # average_size parameter is deprecated
-    return st.text(min_size=min_size, max_size=max_size)
+    # Use safe character set: letters, digits, space, and common punctuation
+    # Excludes: control characters (\n, \t, \f, \r, \v), backslash, quotes
+    # This ensures compatibility with YAML, JSON, and ROS2 CLI tools
+    import string as string_module
+    safe_punctuation = '-_.,:;!?@#$%&*()[]{}+=/<>|~'
+    alphabet = string_module.ascii_letters + string_module.digits + ' ' + safe_punctuation
+    return st.text(
+        alphabet=alphabet,
+        min_size=min_size,
+        max_size=max_size
+    )
 
 
 @st.composite

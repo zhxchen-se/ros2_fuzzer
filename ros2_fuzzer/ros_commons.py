@@ -117,10 +117,16 @@ def ros_interface_loader_str(ros2_type, interface_type):
     Wrapper for the :func:`ros_msg_loader` to treat string type command line arguments.
 
     :param interface_type: A string representing the interface type (message, service,...)
-    :param ros2_type: A string type ROS2 interface type (e.g. "rosgraph_msgs/Log").
+    :param ros2_type: A string type ROS2 interface type (e.g. "rosgraph_msgs/Log" or "rosgraph_msgs/msg/Log").
     :return: The :func:`ros_srv_loader` or :func:`ros_msg_loader` function.
     """
-    type_dict = ros_type_to_dict(ros2_type)
+    # Normalize the type string: remove /srv/ or /msg/ if present
+    # This allows both formats: "package/Type" and "package/srv/Type" or "package/msg/Type"
+    # ros2 service list -t outputs: "package/srv/Type"
+    # but the loader expects: "package/Type"
+    normalized_type = ros2_type.replace('/srv/', '/').replace('/msg/', '/')
+    
+    type_dict = ros_type_to_dict(normalized_type)
     if type_dict:
         if interface_type == 'service':
             return ros_srv_loader(type_dict)
@@ -146,7 +152,8 @@ def map_ros_types(ros_class):
                 if type_dict['array'] or type_dict['sequence']:
                     parse_basic_arrays(s_name, type_dict, strategy_dict)
                 elif type_dict['type'] == 'string':
-                    strategy_dict[s_name] = st.text()
+                    # Use the string() function from ros_basic_strategies for consistent behavior
+                    strategy_dict[s_name] = string()
                 elif type_dict['type'] == 'boolean':
                     strategy_dict[s_name] = st.booleans()
                 elif type_dict['type'] == 'octet':
