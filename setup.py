@@ -14,6 +14,8 @@ setup(
         'console_scripts': [
             'ros2_fuzzer=ros2_fuzzer.ros_fuzzer:main',
             'ros2_generate_random_data=ros2_fuzzer.generate_random_data_by_service:main',
+            'ros2_generate_random_service_data=ros2_fuzzer.generate_random_data_by_service:main',
+            'ros2_generate_random_topic_data=ros2_fuzzer.generate_random_data_by_topic:main',
         ],
     },
     install_requires=[

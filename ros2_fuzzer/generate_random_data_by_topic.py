@@ -1,7 +1,7 @@
 """
-ROS2 Service Random Data Generator.
+ROS2 Topic Random Data Generator.
 
-This module provides functionality to generate random data that conforms to a given ROS2 service request format.
+This module provides functionality to generate random data that conforms to a given ROS2 topic message format.
 Can be used as a standalone command-line tool to inspect generated test data.
 
 :authors: Alias Robotics S.L. Borja Erice, Odei Olalde, Xabi Perez, Gorka Olalde
@@ -10,7 +10,6 @@ import logging
 import json
 from argparse import ArgumentParser
 from hypothesis import given, settings, Verbosity, Phase
-from hypothesis.strategies import SearchStrategy
 from ros2_fuzzer.ros_commons import ros_interface_loader_str, map_ros_types
 
 
@@ -59,15 +58,15 @@ def ros_msg_to_dict(msg):
     return result
 
 
-def generate_random_service_data(srv_type, num_examples=1, seed=None, skip_simple=False):
+def generate_random_message_data(msg_type, num_examples=1, seed=None, skip_simple=False):
     """
-    Generate random data conforming to a ROS2 service request format.
+    Generate random data conforming to a ROS2 message format.
     
-    :param srv_type: The ROS2 service type class
+    :param msg_type: The ROS2 message type class
     :param num_examples: Number of random examples to generate
     :param seed: Random seed for reproducibility (optional)
     :param skip_simple: If True, generate more examples and skip the simple ones (optional)
-    :return: List of generated service request instances
+    :return: List of generated message instances
     """
     generated_data = []
     
@@ -98,9 +97,9 @@ def generate_random_service_data(srv_type, num_examples=1, seed=None, skip_simpl
         random.seed(seed)
     
     @settings(**settings_kwargs)
-    @given(srv_request=map_ros_types(srv_type.Request))
-    def collect_data(srv_request):
-        generated_data.append(srv_request)
+    @given(msg=map_ros_types(msg_type))
+    def collect_data(msg):
+        generated_data.append(msg)
     
     # Run the generation
     collect_data()
@@ -112,19 +111,19 @@ def generate_random_service_data(srv_type, num_examples=1, seed=None, skip_simpl
     return generated_data
 
 
-def print_service_request(srv_request, output_format='pretty', index=None):
+def print_message(msg, output_format='pretty', index=None):
     """
-    Print a service request in the specified format.
+    Print a message in the specified format.
     
-    :param srv_request: The service request instance
+    :param msg: The message instance
     :param output_format: Output format ('pretty', 'json', or 'compact')
     :param index: Optional index number for the example
     """
     if output_format == 'json':
-        data_dict = ros_msg_to_dict(srv_request)
+        data_dict = ros_msg_to_dict(msg)
         print(json.dumps(data_dict, indent=2))
     elif output_format == 'compact':
-        data_dict = ros_msg_to_dict(srv_request)
+        data_dict = ros_msg_to_dict(msg)
         print(json.dumps(data_dict))
     else:  # pretty format
         if index is not None:
@@ -132,7 +131,7 @@ def print_service_request(srv_request, output_format='pretty', index=None):
             print(f"Example #{index + 1}")
             print('='*60)
         
-        print_message_pretty(srv_request, indent=0)
+        print_message_pretty(msg, indent=0)
 
 
 def print_message_pretty(msg, indent=0):
@@ -156,7 +155,7 @@ def print_message_pretty(msg, indent=0):
         elif isinstance(value, list):
             if not value:
                 print(f"{indent_str}{field_name}: []")
-            elif hasattr(value[0], 'get_fields_and_field_types'):
+            elif value and hasattr(value[0], 'get_fields_and_field_types'):
                 # List of nested messages
                 print(f"{indent_str}{field_name} ({field_type}): [")
                 for i, item in enumerate(value):
@@ -183,19 +182,19 @@ def print_message_pretty(msg, indent=0):
 def main():
     """
     Main entry point for the command-line tool.
-    Generates and prints random data for a given ROS2 service type.
+    Generates and prints random data for a given ROS2 message type.
     """
     logging.basicConfig(level=logging.WARNING)
     logger = logging.getLogger(__name__)
     
     parser = ArgumentParser(
-        description='Generate random data conforming to a ROS2 service request format',
-        epilog='Example: python -m ros2_fuzzer.generate_random_data_by_service example_interfaces/AddTwoInts'
+        description='Generate random data conforming to a ROS2 topic message format',
+        epilog='Example: python -m ros2_fuzzer.generate_random_data_by_topic std_msgs/String'
     )
     
     parser.add_argument(
-        'service_type',
-        help='ROS2 service type. Supports both formats: "package/Type" or "package/srv/Type" (from ros2 service list -t)'
+        'message_type',
+        help='ROS2 message type. Supports both formats: "package/Type" or "package/msg/Type" (from ros2 topic list -t)'
     )
     
     parser.add_argument(
@@ -228,14 +227,14 @@ def main():
     args = parser.parse_args()
     
     try:
-        # Load the service type
-        logger.info(f"Loading service type: {args.service_type}")
-        srv_type = ros_interface_loader_str(args.service_type, 'service')
+        # Load the message type
+        logger.info(f"Loading message type: {args.message_type}")
+        msg_type = ros_interface_loader_str(args.message_type, 'message')
         
         # Generate random data
         logger.info(f"Generating {args.num_examples} random example(s)...")
-        generated_requests = generate_random_service_data(
-            srv_type,
+        generated_messages = generate_random_message_data(
+            msg_type,
             num_examples=args.num_examples,
             seed=args.seed,
             skip_simple=args.random
@@ -243,25 +242,25 @@ def main():
         
         # Print the generated data
         if args.format == 'pretty' and args.num_examples > 1:
-            print(f"\nGenerated {len(generated_requests)} random service request(s) for: {args.service_type}")
+            print(f"\nGenerated {len(generated_messages)} random message(s) for: {args.message_type}")
         
-        for i, request in enumerate(generated_requests):
-            print_service_request(
-                request,
+        for i, message in enumerate(generated_messages):
+            print_message(
+                message,
                 output_format=args.format,
                 index=i if args.format == 'pretty' and args.num_examples > 1 else None
             )
             
             # Add separator between JSON outputs if multiple examples
-            if args.format in ['json', 'compact'] and i < len(generated_requests) - 1:
+            if args.format in ['json', 'compact'] and i < len(generated_messages) - 1:
                 print()
         
         if args.format == 'pretty':
             print()
             
     except ImportError as e:
-        logger.error(f"Failed to load service type '{args.service_type}': {e}")
-        print(f"Error: Could not load service type '{args.service_type}'")
+        logger.error(f"Failed to load message type '{args.message_type}': {e}")
+        print(f"Error: Could not load message type '{args.message_type}'")
         print("Make sure the package is installed and sourced.")
         return 1
     except Exception as e:
